@@ -23,22 +23,22 @@ type MeshBuilder struct {
 	inds              math32.ArrayU32
 }
 
-func NewMeshBuilder() MeshBuilder {
+func NewMeshBuilder() *MeshBuilder {
 	result := MeshBuilder{
 		verts: math32.NewArrayF32(0, 3*3*64),
 		norms: math32.NewArrayF32(0, 3*3*64),
 		uvs:   math32.NewArrayF32(0, 2*3*64),
 		inds:  math32.NewArrayU32(0, 3*64),
 	}
-	return result
+	return &result
 }
 
-func (mb MeshBuilder) MeshAppend(
+func (mb *MeshBuilder) MeshAppend(
 	verts []float32,
 	norms []float32,
 	uvs []float32,
 	inds []uint32,
-) MeshBuilder {
+) *MeshBuilder {
 	mb.verts.Append(verts...)
 	mb.norms.Append(norms...)
 	mb.uvs.Append(uvs...)
@@ -46,7 +46,7 @@ func (mb MeshBuilder) MeshAppend(
 	return mb
 }
 
-func (mb MeshBuilder) MeshWrite(
+func (mb *MeshBuilder) MeshWrite(
 	result *geometry.Geometry,
 ) *geometry.Geometry {
 	result.SetIndices(mb.inds)
@@ -55,42 +55,32 @@ func (mb MeshBuilder) MeshWrite(
 	result.AddVBO(gls.NewVBO(mb.uvs).AddAttrib(gls.VertexTexcoord))
 	return result
 }
-
-func NewChunkMesh() *geometry.Geometry {
-	result := geometry.NewGeometry()
-
-	// w, h, d := 8,8,8
-
-	vertexCount := 3
-
-	verts := math32.NewArrayF32(0, vertexCount*3)
-	norms := math32.NewArrayF32(0, vertexCount*3)
-	uvs := math32.NewArrayF32(0, vertexCount*2)
-	indices := math32.NewArrayU32(0, vertexCount)
-
-	verts.Append(
-		0, 0, 0,
-		1, 0, 0,
-		1, 1, 0,
+func (mb *MeshBuilder) Cube(minx, miny, minz, maxx, maxy, maxz float32) *MeshBuilder {
+	mb.MeshAppend(
+		[]float32{
+			minx, miny, minz,
+			minx, maxy, minz,
+			maxx, maxy, minz,
+			maxx, miny, minz,
+		},
+		[]float32{
+			0, 0, 0,
+			0, 0, 0,
+			0, 0, 0,
+			0, 0, 0,
+		},
+		[]float32{
+			minx, miny,
+			minx, maxy,
+			maxx, maxy,
+			maxx, miny,
+		},
+		[]uint32{
+			0, 1, 2,
+			0, 2, 3,
+		},
 	)
-	norms.Append(
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 0,
-	)
-	uvs.Append(
-		0, 0,
-		1, 0,
-		1, 1,
-	)
-	indices.Append(0, 1, 2)
-
-	result.SetIndices(indices)
-	result.AddVBO(gls.NewVBO(verts).AddAttrib(gls.VertexPosition))
-	result.AddVBO(gls.NewVBO(norms).AddAttrib(gls.VertexNormal))
-	result.AddVBO(gls.NewVBO(uvs).AddAttrib(gls.VertexTexcoord))
-
-	return result
+	return mb
 }
 
 func main() {
@@ -124,20 +114,13 @@ func main() {
 
 	geom := geometry.NewGeometry()
 
-	NewMeshBuilder().MeshAppend(
-		[]float32{0, 0, 0, 1, 0, 0, 1, 1, 0},
-		[]float32{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		[]float32{0, 0, 1, 0, 1, 1},
-		[]uint32{0, 1, 2},
-	).MeshAppend(
-		[]float32{0, 0, 0, 1, 1, 0, 0, 1, 0},
-		[]float32{0, 0, 0, 0, 0, 0, 0, 0, 0},
-		[]float32{0, 0, 1, 0, 1, 1},
-		[]uint32{3, 4, 5},
-	).MeshWrite(geom)
+	mb := NewMeshBuilder().Cube(
+		0, 0, 0,
+		1, 1, 1,
+	)
 
-	// Create a blue torus and add it to the scene
-	// geom := NewChunkMesh() //geometry.NewTorus(1, .4, 12, 32, math32.Pi*2)
+	mb.MeshWrite(geom)
+
 	mat := material.NewStandard(math32.NewColor("DarkBlue"))
 	mesh := graphic.NewMesh(geom, mat)
 	scene.Add(mesh)
