@@ -18,6 +18,44 @@ import (
 	"github.com/g3n/engine/window"
 )
 
+type MeshBuilder struct {
+	verts, norms, uvs math32.ArrayF32
+	inds              math32.ArrayU32
+}
+
+func NewMeshBuilder() MeshBuilder {
+	result := MeshBuilder{
+		verts: math32.NewArrayF32(0, 3*3*64),
+		norms: math32.NewArrayF32(0, 3*3*64),
+		uvs:   math32.NewArrayF32(0, 2*3*64),
+		inds:  math32.NewArrayU32(0, 3*64),
+	}
+	return result
+}
+
+func (mb MeshBuilder) MeshAppend(
+	verts []float32,
+	norms []float32,
+	uvs []float32,
+	inds []uint32,
+) MeshBuilder {
+	mb.verts.Append(verts...)
+	mb.norms.Append(norms...)
+	mb.uvs.Append(uvs...)
+	mb.inds.Append(inds...)
+	return mb
+}
+
+func (mb MeshBuilder) MeshWrite(
+	result *geometry.Geometry,
+) *geometry.Geometry {
+	result.SetIndices(mb.inds)
+	result.AddVBO(gls.NewVBO(mb.verts).AddAttrib(gls.VertexPosition))
+	result.AddVBO(gls.NewVBO(mb.norms).AddAttrib(gls.VertexNormal))
+	result.AddVBO(gls.NewVBO(mb.uvs).AddAttrib(gls.VertexTexcoord))
+	return result
+}
+
 func NewChunkMesh() *geometry.Geometry {
 	result := geometry.NewGeometry()
 
@@ -84,8 +122,22 @@ func main() {
 	a.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
+	geom := geometry.NewGeometry()
+
+	NewMeshBuilder().MeshAppend(
+		[]float32{0, 0, 0, 1, 0, 0, 1, 1, 0},
+		[]float32{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[]float32{0, 0, 1, 0, 1, 1},
+		[]uint32{0, 1, 2},
+	).MeshAppend(
+		[]float32{0, 0, 0, 1, 1, 0, 0, 1, 0},
+		[]float32{0, 0, 0, 0, 0, 0, 0, 0, 0},
+		[]float32{0, 0, 1, 0, 1, 1},
+		[]uint32{3, 4, 5},
+	).MeshWrite(geom)
+
 	// Create a blue torus and add it to the scene
-	geom := NewChunkMesh() //geometry.NewTorus(1, .4, 12, 32, math32.Pi*2)
+	// geom := NewChunkMesh() //geometry.NewTorus(1, .4, 12, 32, math32.Pi*2)
 	mat := material.NewStandard(math32.NewColor("DarkBlue"))
 	mesh := graphic.NewMesh(geom, mat)
 	scene.Add(mesh)
