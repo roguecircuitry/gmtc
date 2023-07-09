@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -51,44 +50,37 @@ func main() {
 
 	geom := geometry.NewGeometry()
 
-	cubeInfo := &CubeInfo{
-		top:    true,
-		bottom: true,
-		north:  true,
-		south:  true,
-		east:   true,
-		west:   true,
-		min:    *math32.NewVector3(0, 0, 0),
-		max:    *math32.NewVector3(1, 1, 1),
-	}
-
 	mb := NewMeshBuilder()
 
+	//create a chunk
 	chunk := NewChunk()
+
+	//loop over each block
 	chunk.ForEachBlock(func(block *BlockData) {
-		if rand.Float32() > 0.5 {
+		//do some math to figure out what the block type should be
+		if block.y < 5 {
+			block.data.id = 1
+		} else if block.y < 6 && rand.Float32() < 0.9 {
 			block.data.id = 1
 		} else {
 			block.data.id = 0
 		}
-
+		//replace the block
 		chunk.SetBlockData(block)
+	})
 
-		if block.data.id == 1 {
-			cubeInfo.min.Set(
-				float32(block.x),
-				float32(block.y),
-				float32(block.z),
-			)
-			cubeInfo.max.Copy(&cubeInfo.min).AddScalar(1)
-			mb.Cube(cubeInfo)
+	//loop over each block and cube info (calculates neighbors automatically)
+	chunk.ForEachCubeInfo(func(cubeInfo *CubeInfo, block *BlockData) {
+		//if block is renderable
+		if block.data.id != 0 {
+			mb.Cube(cubeInfo) //draw a cuboid, taking neighbor occlusion into account
 		}
 	})
 
+	//recalculate normals (currently not working properly)
 	mb.AutoNorms()
 
-	fmt.Printf("mb.norms: %v\n", mb.norms)
-
+	//write mesh to geometry
 	mb.MeshWrite(geom)
 
 	mat := material.NewStandard(math32.NewColor("DarkBlue"))
